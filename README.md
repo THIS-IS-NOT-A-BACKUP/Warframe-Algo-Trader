@@ -6,14 +6,14 @@
 
 ## Motivation
 
-Warframe blends free-to-play mechanics with a premium currency system that is essential to smooth player progression. Players can acquire this premium currency, platinum, either through in-game purchases or by engaging in a dynamic player-driven economy, where they can trade their virtual possessions with other players. To facilitate these trades and foster a thriving marketplace, platforms such as Warframe.market have emerged, revolutionizing the way players make trades. By using the information on this platform, this program aims to add liquidity to the market, delivering better value to both buyers and sellers.To achieve this, my program provides methods of algorithmically determining high interest items based on real-time market data, automatic postings to warframe.market, and an interactive frontend to control and track your inventory as you are playing. Additionally, it uses optical character recognition (OCR) to notice in-game events and give quick phone notifications when trading opportinies arise. Many players with active, seemingly promising, postings on warframe.market are afk in-game and difficult to reach. This program aims to reduce the impact that those users have on the website by both often providing better deals than those users and giving the user quick notifications to their own trades to encourage quick responses. The components involved are:
+Warframe blends free-to-play mechanics with a premium currency system that is essential to smooth player progression. Players can acquire this premium currency, platinum, either through in-game purchases or by engaging in a dynamic player-driven economy, where they can trade their virtual possessions with other players. To facilitate these trades and foster a thriving marketplace, platforms such as Warframe.market have emerged, revolutionizing the way players make trades. By using the information on this platform, this program aims to add liquidity to the market, delivering better value to both buyers and sellers.To achieve this, my program provides methods of algorithmically determining high interest items based on real-time market data, automatic postings to warframe.market, and an interactive frontend to control and track your inventory as you are playing. Additionally, it reads the EE.log to detect incoming whispers and give quick phone notifications when trading opportinies arise. Many players with active, seemingly promising, postings on warframe.market are afk in-game and difficult to reach. This program aims to reduce the impact that those users have on the website by both often providing better deals than those users and giving the user quick notifications to their own trades to encourage quick responses. The components involved are:
 
 - FastAPI: FastAPI is used in this program to create the backend API that handles the logic for determining high-interest items based on real-time market data, managing inventory, and automatically making postings to warframe.market.
 - React: React is utilized to develop the interactive frontend that allows players to control and track their inventory as they play the game with dynamic UI components.
 - Tailwind CSS: Tailwind CSS is used to style the user interface, providing a pleasing and clear aesthetic for use.
 - SQLite3 Databases: SQLite3 is used to store and track the player's inventory and transactions.
-- Pytesseract: Pytesseract is used to perform optical character recognition on the player's screen, allowing it to recognize in-game events related to trading opportunities. When such opportunities arise, the program can send quick phone notifications to the player.
 - Pushbullet: Pushbullet is used for their friendly push notification api to send notifications to my phone. Note that you need pushbutton installed on your phone for this and there is more setting up of credentials.
+- Discord Webhooks: Since pushbullet only allows 500 free pushes a month, there is also discord webhook integration allowing desktop/ios notifications through pings!
 
 Additionally, this [video](https://youtu.be/5g3vUm-XlyE) contains a summary of how this method remains profitable for the user along with a link to a discord server where you can discuss this program with me.
 
@@ -29,8 +29,6 @@ You can currently build this programs two ways. The recommended way is through D
 If you would like a visual guide for reference, I have posted that here: https://www.youtube.com/watch?v=qzcvqm-ccR4
 
 #### Method A. Docker:
-
-> A limitation of running this project with Docker is that you will be unable to utilize OCR for detecting when you've received an in-game message.
 
 ##### A. Requirements:
 
@@ -51,7 +49,6 @@ If you would like a visual guide for reference, I have posted that here: https:/
 - Python 3.11. Some earlier versions of Python 3 do not like some of the newer syntax I used in the API, so make sure you have the latest version of Python.
 - Node.js for frontend and to use npm ([link](https://nodejs.org/en/download))
 - Pushbullet (Only necessary for any phone notifications)
-- ~~Tesseract-OCR (Only necessary for real time phone notifications [link](https://github.com/UB-Mannheim/tesseract/wiki))~~ (Tesseract Deprecated, moved to EE.log. Files still remain as proof of how cool it was)
 
 ##### B. Steps:
 
@@ -79,14 +76,21 @@ If you would like a visual guide for reference, I have posted that here: https:/
 
 **The JWT token is structured like "JWT eraydsfhalefibnzsdlfi". It includes the letters, "JWT" as well as a space before all the seemingly random characters.**
 
+If you do not care about either notification system, you can proceed to [Running](https://github.com/akmayer/Warframe-Algo-Trader/tree/main#running) as neither is required.
 
-**Steps below are only required for pushbullet mobile notifications:**
+#### Discord Webhook Notifications Setup
 
-4. ~~Install Tesseract-OCR from [their github](https://github.com/UB-Mannheim/tesseract/wiki). Either of the default installation paths should be fine but it should either end up in `C:Program Files\Tesseract-OCR` or in your `~\AppData\Local\Programs\Tesseract-OCR` where `~` is your user home directory.~~
-5. Install pushbullet on your phone. Additionally, on the Pushbullet website, login and add your phone as a device.
-6. After adding your phone as a device, make sure you are in the "Devices" tab. Then, on the website, click your phone to open the push chats with it.
-7. Clicking your phone will change the url to `https://www.pushbullet.com/#devices/<DEVICE_TOKEN>`. Copy this token and paste it into your config.json file with the key, "pushbullet_device_iden".
-8. Under the settings tab, click Create Access Token. Copy that token and paste it into your config.json file with the key, "pushbullet_token".
+1. Make a new discord server.
+2. Click Server Settings > Integrations > Create Webhook
+3. Click the newly created webhook then Copy Webhook URL
+4. Paste the FULL URL into the new webhookLink parameter in the config.json.
+
+#### Pushbullet Mobile Notification Setup
+
+1. Install pushbullet on your phone. Additionally, on the Pushbullet website, login and add your phone as a device.
+2. After adding your phone as a device, make sure you are in the "Devices" tab. Then, on the website, click your phone to open the push chats with it.
+3. Clicking your phone will change the url to `https://www.pushbullet.com/#devices/<DEVICE_TOKEN>`. Copy this token and paste it into your config.json file with the key, "pushbullet_device_iden".
+4. Under the settings tab, click Create Access Token. Copy that token and paste it into your config.json file with the key, "pushbullet_token".
 
 ### Running
 
@@ -112,27 +116,7 @@ The first button, that will start out looking like "Stats Reader Status: Not run
 
 The second button uses that data to determine which items seem "interesting". Then, it will delete all the buy and sell orders on your account to replace with its suggested ones. It will go through the interesting items and put "buy" posts on warframe.market at a higher price than any one else, **if** it decide's it's a good time to do so based on the currnt live postings. You may have a lot of "buy" posts up so ensure that you have enough platinum to honor people's messages to you. If you're technically inclined and know some python, you can fidget with the parameters in `LiveScraper.py` which can provide flexibility about which items you personally find interesting, or limit the number of total buy requests you can put up at once. The program will also put up "sell" orders automatically based on your inventory, but strictly higher than what you bought that item for on average, to ensure that the user is not at a loss by running this program. Leave this button on running in the background while you have trades available and have warframe open to be able to trade.
 
-The third button ~~combines pyautogui with OCR to detect when you receive whispers and send a notification to your phone when you do. Leave this on at the same time as the second button if you plan on doing other things while you let the whispers come to you and the notifactions let you respond quickly.~~ checks the EE.log for new whispers appearing and notifies your phone based on that
-
-Skip to [Inventory Manager](https://github.com/akmayer/Warframe-Algo-Trader/tree/main#inventory-manager), ignore the rest of this note about ocr below.
-
-**A note about OCR and phone notifications:**
-
-You **_must_** set your in-game chat scale to 200 and your chat text size to LARGE for this to work. Additionally, you must extend your in game chat box as far horizontally as you can. If you playing on a 1920x1200 screen, this should be enough. When you are waiting for people to message you about trades, your screen should look like this:
-
-![image](https://github.com/akmayer/Warframe-Algo-Trader/assets/11152158/89555782-ffc5-4a3a-83c1-4b36cee3fe66)
-
-If you are NOT on a 1920x1200 screen, click the Start button next to Screen Reader Status: Not running for a few seconds. Then alt-tab into warframe for a few seconds so that the program can detect where it thinks your whisper notifications are. Ideally, the whispers.png file should look like this:
-
-![image](https://github.com/akmayer/Warframe-Algo-Trader/assets/11152158/1549006a-5035-4617-82ea-e6419b02e6d6)
-
-which includes the arrow on the left but does not include the chat-minimizing icon on the right.
-
-If it does not look like this, you may have to fidget with values in line 74 of `AutoScanWaframe.py`.
-
-**Another note:**
-
-If you have an Android then Pushbullet may not vibrate on notification which can be inconvenient. There are other 3rd party apps for android like Macrodroid which can solve this.
+The third button checks the EE.log for new whispers appearing and notifies your phone/discord based on that.
 
 ### Inventory Manager
 
