@@ -92,6 +92,14 @@ If you do not care about either notification system, you can proceed to [Running
 3. Clicking your phone will change the url to `https://www.pushbullet.com/#devices/<DEVICE_TOKEN>`. Copy this token and paste it into your config.json file with the key, "pushbullet_device_iden".
 4. Under the settings tab, click Create Access Token. Copy that token and paste it into your config.json file with the key, "pushbullet_token".
 
+#### Debugging Setup
+
+If you want to use the debug mode (Breakpoint in the python code):
+
+1. [Install Python Extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python) for VSCode
+2. Run the debugger from the debugger tab.
+3. Navigate to the my-app folder from the command line and run npm run dev from the console window.
+
 ### Running
 
 #### Method A) Docker
