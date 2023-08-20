@@ -58,18 +58,20 @@ def fast_flatten(input_list):
     return list(chain.from_iterable(input_list))
 
 
-lastSevenDays = [getDayStr(x) for x in range(1, 9)]
-print(lastSevenDays)
+lastManyDays = [getDayStr(x) for x in range(1, 15)]
+#print(lastManyDays)
 
 df = pd.DataFrame()
 
 foundData = 0
 frames = []
-for dayStr in tqdm(lastSevenDays):
+for dayStr in tqdm(lastManyDays):
+    if foundData >= 7:
+        continue
     link = getDataLink(dayStr)
     r = requests.get(link)
     customLogger.writeTo("relicsApiCalls.log", f"GET:{link}\tResponse:{r.status_code}")
-    if str(r.status_code)[0] != "2" or foundData >= 7:
+    if str(r.status_code)[0] != "2":
         continue
     foundData += 1
     for name, data in r.json().items():
@@ -117,6 +119,9 @@ df["item_id"] = df.apply(lambda row : itemListDF[itemListDF["url_name"] == row["
 df["order_type"] = df.get("order_type").str.lower()
 df.to_csv("allItemData.csv", index=False)
 
-os.remove("allItemDataBackup.csv")
+try:
+    os.remove("allItemDataBackup.csv")
+except FileNotFoundError:
+    pass
 
 config.setConfigStatus("runningStatisticsScraper", False)
