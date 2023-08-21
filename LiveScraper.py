@@ -21,11 +21,7 @@ def ignoreItems(itemName):
     return itemName in config.blacklistedItems
 
 
-def getWeekIncrease(row):
-    try:
-        df = pd.read_csv("allItemDataBackup.csv")
-    except FileNotFoundError:
-        df = pd.read_csv("allItemData.csv")
+def getWeekIncrease(df, row):
     weekDF = pd.DataFrame(df[(df.get("name") == row["name"]) & (df.get("order_type") == "closed")]
                          ).sort_values(by='datetime').reset_index().drop("index", axis=1)
     change = weekDF.loc[6, "median"] - weekDF.loc[0, "median"]
@@ -72,7 +68,7 @@ def getBuySellOverlap():
                 "item_id" : []
             }
         ).set_index("name")
-    dfFilter["weekPriceShift"] = dfFilter.apply(getWeekIncrease, axis=1)
+    dfFilter["weekPriceShift"] = dfFilter.apply(lambda row : getWeekIncrease(df, row), axis=1)
     if config.strictWhitelist:
         dfFilter = dfFilter[(dfFilter.get("name").isin(config.whitelistedItems))]
     else:
@@ -260,6 +256,11 @@ def get_new_buy_data(myBuyOrdersDF, response, itemStats):
 
 
 def compareLiveOrdersWhenBuying(item, liveOrderDF, itemStats, currentOrders, myBuyOrdersDF, itemID, modRank, inventory):
+    con = sqlite3.connect('inventory.db')
+
+    inventory = pd.read_sql_query("SELECT * FROM inventory", con)
+    con.close()
+    inventory = inventory[inventory.get("number") > 0]
     if ignoreItems(item):
         logging.debug("Item Blacklisted.")
         return
@@ -356,6 +357,11 @@ def compareLiveOrdersWhenBuying(item, liveOrderDF, itemStats, currentOrders, myB
 
 
 def compareLiveOrdersWhenSelling(item, liveOrderDF, itemStats, currentOrders, itemID, modRank, inventory):
+    con = sqlite3.connect('inventory.db')
+
+    inventory = pd.read_sql_query("SELECT * FROM inventory", con)
+    con.close()
+    inventory = inventory[inventory.get("number") > 0]
     orderType = "sell"
     myOrderID, visibility, myPlatPrice, myOrderActive = getMyOrderInformation(item, orderType, currentOrders)
 
@@ -372,14 +378,15 @@ def compareLiveOrdersWhenSelling(item, liveOrderDF, itemStats, currentOrders, it
 
     #probably don't want to be looking at this item right now if there's literally nobody interested in selling it.
     avgCost = (inventory["purchasePrice"] * inventory["number"]).sum() / inventory["number"].sum()
+    myQuantity = inventory["number"].sum()
     if numSellers == 0:
         postPrice = int(avgCost+30)
         if myOrderActive:
             updateDBPrice(item, postPrice)
-            updateListing(myOrderID, postPrice, 1, str(visibility), item, "sell")
+            updateListing(myOrderID, postPrice, myQuantity, str(visibility), item, "sell")
             return
         else:
-            postOrder(itemID, orderType, postPrice, str(1), str(True), modRank, item)
+            postOrder(itemID, orderType, postPrice, str(myQuantity), str(True), modRank, item)
             updateDBPrice(item, postPrice)
             return
     bestSeller = liveSellerDF.iloc[0]
@@ -399,16 +406,16 @@ def compareLiveOrdersWhenSelling(item, liveOrderDF, itemStats, currentOrders, it
         if (myPlatPrice != (postPrice)):
             logging.debug(f"AUTOMATICALLY UPDATED {orderType.upper()} ORDER FROM {myPlatPrice} TO {postPrice}")
             updateDBPrice(item, int(postPrice))
-            updateListing(myOrderID, str(int(postPrice)), 1, str(visibility), item, "sell")
+            updateListing(myOrderID, str(int(postPrice)), myQuantity, str(visibility), item, "sell")
             return
         
         else:
             updateDBPrice(item, int(myPlatPrice))
-            updateListing(myOrderID, str(int(postPrice)), 1, str(visibility), item, "sell")
+            updateListing(myOrderID, str(int(postPrice)), myQuantity, str(visibility), item, "sell")
             logging.debug(f"Your current (possibly hidden) posting on this item for {myPlatPrice} plat is a good one. Recommend to make visible.")
             return
     else:
-        response = postOrder(itemID, orderType, int(postPrice), str(1), str(True), modRank, item)
+        response = postOrder(itemID, orderType, int(postPrice), str(myQuantity), str(True), modRank, item)
         updateDBPrice(item, int(postPrice))
         logging.debug(f"AUTOMATICALLY POSTED VISIBLE {orderType.upper()} ORDER FOR {postPrice}")
         return
