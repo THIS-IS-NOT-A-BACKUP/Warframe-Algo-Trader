@@ -1,4 +1,4 @@
-from fastapi import FastAPI, status, HTTPException
+from fastapi import FastAPI, status, HTTPException, Request
 from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel
 import csv
@@ -16,6 +16,7 @@ import io
 import time
 from fastapi.responses import StreamingResponse
 from AccessingWFMarket import *
+from typing import Any, Dict, List, Union
 
 logging.basicConfig(format='{levelname:7} {message}', style='{', level=logging.DEBUG)
 
@@ -37,6 +38,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+itemNameList = []
 
 class Item(BaseModel):
     name:str
@@ -48,6 +50,7 @@ class Transact(BaseModel):
     name:str
     transaction_type:str
     price:float | None = None
+    number:int | None = 1
 
 
 def receive_signal(signalNumber, frame):
@@ -115,10 +118,12 @@ async def root():
 
 @app.get("/all_items")
 async def get_a_list_of_names_of_all_tradable_items():
-    allItemsLink = "https://api.warframe.market/v1/items"
-    r = requests.get(allItemsLink)
-    itemList = r.json()["payload"]["items"]
-    itemNameList = [x["url_name"] for x in itemList]
+    global itemNameList
+    if len(itemNameList) == 0:
+        allItemsLink = "https://api.warframe.market/v1/items"
+        r = requests.get(allItemsLink)
+        itemList = r.json()["payload"]["items"]
+        itemNameList = sorted([x["url_name"] for x in itemList])
     return {"item_names" : itemNameList}
 
 @app.get("/items")
@@ -364,8 +369,10 @@ def create_transaction(t : Transact):
     """)
 
     # Insert the transaction into the table
-    cursor.execute("INSERT INTO transactions (name, datetime, transactionType, price) VALUES (?, ?, ?, ?)",
-                   (t.name, datetime.now(), t.transaction_type, t.price))
+    for x in range(t.number):
+        cursor.execute("INSERT INTO transactions (name, datetime, transactionType, price) VALUES (?, ?, ?, ?)",
+                    (t.name, datetime.now(), t.transaction_type, t.price))
+        time.sleep(0.0001)
 
     conn.commit()
     conn.close()
@@ -466,4 +473,16 @@ def write_graph_to_file(startDate : str | None = None, endDate : str | None = No
 
     # Return the BytesIO object as a StreamingResponse with the appropriate media type
     return StreamingResponse(buffer, media_type="image/png")
-    
+
+@app.get("/settings")
+def get_settings():
+    with open('settings.json') as settings:
+        data = json.load(settings)
+    return data
+
+@app.put("/settings")
+async def put_settings(request: Union[List,Dict,Any]=None):
+    newSettings = json.dumps(request, indent=4)
+    with open("settings.json", "w") as settings:
+        settings.write(newSettings)
+    return {"Executed" : True}

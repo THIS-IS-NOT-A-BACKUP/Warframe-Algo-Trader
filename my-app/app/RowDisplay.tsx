@@ -17,7 +17,6 @@ export default function RowDisplay() {
   useEffect(() => {
     // Fetch data from the REST API
     const interval = setInterval(() => {
-      console.log("ping");
       fetch(`${environment.API_BASE_URL}/items`)
         .then((response) => response.json())
         .then((data) => setRows(data))
@@ -74,7 +73,7 @@ export default function RowDisplay() {
 
     if (lastPart === "del") {
       // Perform specific action for "del"
-      apiEndpoint = `${environment.API_BASE_URL}/market/remove`;
+      apiEndpoint = `${environment.API_BASE_URL}/market/delete`;
       console.log("Button with id", buttonId, "clicked. Action: 'del'");
       // Your action for "del" goes here
     } else {
@@ -163,7 +162,7 @@ export default function RowDisplay() {
                 key={row.id}
                 className="inventory-row"
               >
-                <td className="item">{row.name}</td>
+                <td className="item">{row.name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</td>
                 <td className="item">{(Math.round(row.purchasePrice * 100) / 100).toFixed(2)}</td>
                 <td className="item">{row.listedPrice}</td>
                 <td className="item">{row.number}</td>

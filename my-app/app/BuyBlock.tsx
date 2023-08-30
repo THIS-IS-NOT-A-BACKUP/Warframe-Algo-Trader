@@ -21,7 +21,7 @@ export default function BuyBlock() {
   const handleItemNameChange = (event: ChangeEvent<HTMLInputElement>) => {
     const inputValue = event.target.value;
     const formattedInputValue = inputValue.replace(/\s+/g, "_");
-    setItemName(formattedInputValue);
+    setItemName(inputValue);
   };
 
   const handleButtonClick = (buttonId : string) => {  
@@ -89,6 +89,7 @@ export default function BuyBlock() {
           name: formattedItemName,
           transaction_type: "buy",
           price: price,
+          number: defaultQuantity
         };
 
         fetch(`${environment.API_BASE_URL}/transaction`, {
@@ -135,7 +136,7 @@ export default function BuyBlock() {
       />
       <datalist id="itemNames">
         {allItemNames.map((name) => (
-          <option key={name} value={name} />
+          <option key={name} value={name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())} />
         ))}
       </datalist>
       <input
@@ -148,7 +149,7 @@ export default function BuyBlock() {
       <input
         className=""
         type="text"
-        placeholder="Price"
+        placeholder="Price Per Item"
         value={price}
         onChange={(event) => setPrice(event.target.value)}
       />
