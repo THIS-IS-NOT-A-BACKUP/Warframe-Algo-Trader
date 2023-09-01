@@ -86,6 +86,7 @@ def getBuySellOverlap(settings):
         dfFilter = dfFilter[(dfFilter.get("name").isin(settings["whitelistedItems"]))]
     else:
         dfFilter = dfFilter[((dfFilter.get("avg_price") < settings["avgPriceCap"]) & (dfFilter.get("weekPriceShift") >= settings["priceShiftThreshold"])) | (dfFilter.get("name").isin(inventoryNames)) | (dfFilter.get("name").isin(settings["whitelistedItems"]))]
+        dfFilter = dfFilter[(~dfFilter.get("name").isin(settings["blacklistedItems"]))]
     names = dfFilter["name"].unique()
 
     dfFiltered = averaged_df[averaged_df["name"].isin(names)]
@@ -283,6 +284,9 @@ def compareLiveOrdersWhenBuying(item, liveOrderDF, itemStats, currentOrders, myB
     myOrderID, visibility, myPlatPrice, myOrderActive = getMyOrderInformation(item, orderType, currentOrders)
     liveBuyerDF, liveSellerDF, numBuyers, numSellers, priceRange = restructureLiveOrderDF(liveOrderDF)
 
+    if myOrderActive:
+        if myPlatPrice > settings["avgPriceCap"]:
+            deleteOrder(myOrderID)
     #probably don't want to be looking at this item right now if there's literally nobody interested in selling it.
     if numSellers == 0:
         return
